@@ -1,4 +1,3 @@
 (executables
- (public_names main day1 day2 day3 day4 day5)
- (names main day1 day2 day3 day4 day5)
- (libraries ocaml_advent_2022))
+ (public_names day1 day2 day3 day4 day5)
+ (names day1 day2 day3 day4 day5))
