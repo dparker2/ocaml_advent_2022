@@ -1,6 +1,4 @@
 (*
-Linear programming solution
-
 Let T(i) be the length of the unique run of s from s[0..i]
 T(0) = 1
 T(i) = min(1 + T(i-1), distance backwards to s[i])
