@@ -1,5 +1,4 @@
 type directory = { parent : directory option; size : int ref }
-type directories = directory list
 
 let root = { parent = None; size = ref 0 }
 
@@ -7,7 +6,7 @@ let rec add_size dir size =
   dir.size := !(dir.size) + size;
   match dir.parent with None -> () | Some parent -> add_size parent size
 
-let rec build_dirs curr_dir dirs : directories =
+let rec build_dirs curr_dir dirs =
   try
     let line = read_line () in
     match String.split_on_char ' ' line with
@@ -30,17 +29,16 @@ let rec build_dirs curr_dir dirs : directories =
 
 let () =
   let dirs = build_dirs root [ root ] in
-  let dirs_100k = List.filter (fun d -> !(d.size) <= 100000) dirs in
-  let sum_dirs_100k =
-    List.fold_left (fun sum d -> sum + !(d.size)) 0 dirs_100k
+  let sizes = List.map (fun d -> !(d.size)) dirs in
+  let sum_under_100k =
+    List.fold_left (fun sum x -> if x <= 100000 then sum + x else sum) 0 sizes
   in
-  Printf.printf "Part 1: %d\n" sum_dirs_100k;
+  Printf.printf "Part 1: %d\n" sum_under_100k;
   let needed_space = !(root.size) - 40000000 in
-  let delete_dir =
+  let delete_size =
     List.fold_left
-      (fun sm_dir dir ->
-        if !(dir.size) < !(sm_dir.size) && !(dir.size) > needed_space then dir
-        else sm_dir)
-      root dirs
+      (fun min_size x ->
+        if x < min_size && x > needed_space then x else min_size)
+      max_int sizes
   in
-  Printf.printf "Part 2: %d\n" !(delete_dir.size)
+  Printf.printf "Part 2: %d\n" delete_size
