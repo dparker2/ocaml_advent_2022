@@ -61,7 +61,5 @@ let () =
   let sum = matrix_fold (fun sum b -> if b then sum + 1 else sum) 0 visible in
   Printf.printf "Part 1: %d\n" sum;
   let scenic_scores = get_scenic_scores forest n in
-  let max_score =
-    matrix_fold (fun curr score -> max curr score) min_int scenic_scores
-  in
+  let max_score = matrix_fold max min_int scenic_scores in
   Printf.printf "Part 2: %d\n" max_score
