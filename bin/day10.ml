@@ -7,19 +7,22 @@ let instructions =
   in
   rec_read_lines [] |> List.rev
 
-let rec run idx = function
-  | [] -> ()
-  | instr :: rest -> (
-      let signal = signals.(idx - 1) in
-      match instr with
-      | [ "noop" ] ->
-          signals.(idx) <- signal;
-          run (idx + 1) rest
-      | [ "addx"; x ] ->
-          signals.(idx) <- signal;
-          signals.(idx + 1) <- signal + int_of_string x;
-          run (idx + 2) rest
-      | _ -> run idx rest)
+let run instrs =
+  let rec rrun idx = function
+    | [] -> ()
+    | instr :: rest -> (
+        let signal = signals.(idx - 1) in
+        match instr with
+        | [ "noop" ] ->
+            signals.(idx) <- signal;
+            rrun (idx + 1) rest
+        | [ "addx"; x ] ->
+            signals.(idx) <- signal;
+            signals.(idx + 1) <- signal + int_of_string x;
+            rrun (idx + 2) rest
+        | _ -> rrun idx rest)
+  in
+  rrun 1 instrs
 
 let strgth cycle = signals.(cycle - 1) * cycle
 
@@ -33,7 +36,7 @@ let print_crt () =
   done
 
 let () =
-  run 1 instructions;
+  run instructions;
   strgth 20 + strgth 60 + strgth 100 + strgth 140 + strgth 180 + strgth 220
   |> Printf.printf "Part 1: %d\n";
   print_string "Part 2:";
