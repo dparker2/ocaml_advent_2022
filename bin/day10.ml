@@ -34,10 +34,8 @@ let print_crt () =
 
 let () =
   run 1 instructions;
-  let interesting_sum =
-    strgth 20 + strgth 60 + strgth 100 + strgth 140 + strgth 180 + strgth 220
-  in
-  Printf.printf "Part 1: %d\n" interesting_sum;
+  strgth 20 + strgth 60 + strgth 100 + strgth 140 + strgth 180 + strgth 220
+  |> Printf.printf "Part 1: %d\n";
   print_string "Part 2:";
   print_crt ();
   print_newline ()
