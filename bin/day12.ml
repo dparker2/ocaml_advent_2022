@@ -31,22 +31,13 @@ let find_start_end map =
   (!s, !g)
 
 let find_all_a map =
-  let _, list =
-    map
-    |> Array.fold_left
-         (fun (i, acc) arr ->
-           let _, new_acc =
-             arr
-             |> Array.fold_left
-                  (fun (j, acc) char ->
-                    if char = 'S' || char = 'a' then (j + 1, (i, j) :: acc)
-                    else (j + 1, acc))
-                  (0, acc)
-           in
-           (i + 1, new_acc))
-         (0, [])
-  in
-  list
+  let s = ref [] in
+  for i = 0 to Array.length map - 1 do
+    for j = 0 to Array.length map.(0) - 1 do
+      if map.(i).(j) == 'S' || map.(i).(j) == 'a' then s := (i, j) :: !s
+    done
+  done;
+  !s
 
 let height = function
   | 'S' -> Char.code 'a'
