@@ -46,16 +46,15 @@ let _debug_cave cave =
     print_newline ()
   done
 
-let is_air cave pos =
-  not (Positions.mem pos cave.sand || Positions.mem pos cave.rocks)
+let next_pos cave x y =
+  [ (x, y + 1); (x - 1, y + 1); (x + 1, y + 1) ]
+  |> List.filter (fun pos -> not (Positions.mem pos cave.sand))
+  |> List.filter (fun pos -> not (Positions.mem pos cave.rocks))
 
 let rec part1_sand cave maxy x y =
   if y > maxy then raise Exit
   else
-    match
-      [ (x, y + 1); (x - 1, y + 1); (x + 1, y + 1) ]
-      |> List.filter (is_air cave)
-    with
+    match next_pos cave x y with
     | (x2, y2) :: _ -> part1_sand cave maxy x2 y2
     | [] -> (x, y)
 
@@ -63,10 +62,7 @@ let rec part2_sand cave floory x y =
   if y == floory then (x, y)
   else if Positions.mem (500, 0) cave.sand then raise Exit
   else
-    match
-      [ (x, y + 1); (x - 1, y + 1); (x + 1, y + 1) ]
-      |> List.filter (is_air cave)
-    with
+    match next_pos cave x y with
     | (x2, y2) :: _ -> part2_sand cave floory x2 y2
     | [] -> (x, y)
 
