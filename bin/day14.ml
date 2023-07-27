@@ -1,32 +1,23 @@
-module Position = struct
-  type t = int * int
-
-  let compare (x1, y1) (x2, y2) =
-    if compare y1 y2 == 0 then compare x1 x2 else compare y1 y2
-end
-
-module Positions = Set.Make (Position)
-
-type cave = { mutable sand : Positions.t; mutable rocks : Positions.t }
-
+let cave = Hashtbl.create 10000
 let rec range a b = if a > b then range b a else List.init (1 + b - a) (( + ) a)
-let add_pos set pos = Positions.add pos set
+let add_rock pos = Hashtbl.add cave pos '#'
 
-let add_shape x1 y1 x2 y2 set =
+let add_shape x1 y1 x2 y2 =
   if x1 == x2 then
-    range y1 y2 |> List.map (fun y -> (x1, y)) |> List.fold_left add_pos set
-  else range x1 x2 |> List.map (fun x -> (x, y1)) |> List.fold_left add_pos set
+    range y1 y2 |> List.map (fun y -> (x1, y)) |> List.iter add_rock
+  else range x1 x2 |> List.map (fun x -> (x, y1)) |> List.iter add_rock
 
 let ints_of_pair string =
   string |> String.split_on_char ',' |> List.map int_of_string
 
-let rec read_rocks set = function
+let rec add_rocks = function
   | s :: "->" :: e :: rest -> (
       match (ints_of_pair s, ints_of_pair e) with
       | [ x1; y1 ], [ x2; y2 ] ->
-          read_rocks (add_shape x1 y1 x2 y2 set) (e :: rest)
+          add_shape x1 y1 x2 y2;
+          add_rocks (e :: rest)
       | _ -> invalid_arg "Invalid coord")
-  | [ _ ] -> set
+  | [ _ ] -> ()
   | _ -> invalid_arg "Something wrong"
 
 let read_input () =
@@ -36,51 +27,50 @@ let read_input () =
   in
   rec_read_lines []
 
-let _debug_cave cave =
+let _debug_cave () =
   for y = 0 to 165 do
     for x = 450 to 550 do
-      if Positions.mem (x, y) cave.sand then print_char 'o'
-      else if Positions.mem (x, y) cave.rocks then print_char '#'
-      else print_char '.'
+      try print_char (Hashtbl.find cave (x, y))
+      with Not_found -> print_char '.'
     done;
     print_newline ()
   done
 
-let next_pos cave x y =
+let next_pos x y =
   [ (x, y + 1); (x - 1, y + 1); (x + 1, y + 1) ]
-  |> List.filter (fun pos -> not (Positions.mem pos cave.sand))
-  |> List.filter (fun pos -> not (Positions.mem pos cave.rocks))
+  |> List.filter (fun pos -> not (Hashtbl.mem cave pos))
 
-let rec part1_sand cave maxy x y =
+let rec part1_sand maxy x y =
   if y > maxy then raise Exit
   else
-    match next_pos cave x y with
-    | (x2, y2) :: _ -> part1_sand cave maxy x2 y2
+    match next_pos x y with
+    | (x2, y2) :: _ -> part1_sand maxy x2 y2
     | [] -> (x, y)
 
-let rec part2_sand cave floory x y =
-  if y == floory then (x, y)
-  else if Positions.mem (500, 0) cave.sand then raise Exit
+let rec part2_sand maxy x y =
+  if y == maxy + 1 then (x, y)
+  else if Hashtbl.mem cave (500, 0) then raise Exit
   else
-    match next_pos cave x y with
-    | (x2, y2) :: _ -> part2_sand cave floory x2 y2
+    match next_pos x y with
+    | (x2, y2) :: _ -> part2_sand maxy x2 y2
     | [] -> (x, y)
 
-let simulate cave sand_strategy =
+let simulate inputs sand_strategy =
+  Hashtbl.reset cave;
+  inputs |> List.iter add_rocks;
+  let maxy = Hashtbl.fold (fun (_, y) _ c -> max c y) cave 0 in
+  let i = ref 0 in
   try
     while true do
-      cave.sand <- Positions.add (sand_strategy 500 0) cave.sand
-    done
-  with Exit -> ()
+      Hashtbl.add cave (sand_strategy maxy 500 0) 'o';
+      i := !i + 1
+    done;
+    !i
+  with Exit -> !i
 
 let () =
-  let cave = { sand = Positions.empty; rocks = Positions.empty } in
-  cave.rocks <- read_input () |> List.fold_left read_rocks cave.rocks;
-  let _, maxy = Positions.max_elt cave.rocks in
-  simulate cave (part1_sand cave maxy);
-  cave.sand |> Positions.cardinal |> Printf.printf "Part 1: %d\n";
-  (* _debug_cave cave; *)
-  cave.sand <- Positions.empty;
-  simulate cave (part2_sand cave (maxy + 1));
-  (* _debug_cave cave; *)
-  cave.sand |> Positions.cardinal |> Printf.printf "Part 2: %d\n"
+  let inputs = read_input () in
+  simulate inputs part1_sand |> Printf.printf "Part 1: %d\n";
+  (* _debug_cave (); *)
+  simulate inputs part2_sand |> Printf.printf "Part 2: %d\n"
+(* _debug_cave () *)
