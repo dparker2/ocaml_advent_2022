@@ -1,15 +1,11 @@
 type valve = { id : string; flow : int; tunnels : int list }
-type state = { at : int; unopened : int; released : int; minutes : int }
+type state = { at : int; closed : int; released : int; minutes : int }
 
 type problem = {
   graph : valve array;
   openables : int list;
   dists : int array array;
 }
-
-let _extend_problem graph_l string =
-  Scanf.sscanf string "Valve %s has flow rate=%d; %s %s to %s %s@!"
-    (fun v f _ _ _ t -> (v, f, Util.list_of_str t) :: graph_l)
 
 let floyd_warshall valves =
   let n = Array.length valves in
@@ -45,37 +41,56 @@ let problem_of_input inputs =
     dists = floyd_warshall valves;
   }
 
-let rec solve problem state =
+let rec solve problem state answers =
+  (match Hashtbl.find_opt answers state.closed with
+  | Some x ->
+      if state.released > x then
+        Hashtbl.replace answers state.closed state.released
+  | None -> Hashtbl.add answers state.closed state.released);
   let open_valve i v =
     let offset = 1 lsl i in
-    if state.unopened land offset == 0 then 0
+    if state.closed land offset = 0 then 0
     else
       let d = problem.dists.(state.at).(v) in
-      let rmin = state.minutes - d - 1 in
-      if rmin <= 0 then 0
-      else
-        solve problem
-          {
-            at = v;
-            unopened = state.unopened lxor offset;
-            released = state.released + (rmin * problem.graph.(v).flow);
-            minutes = rmin;
-          }
+      let rmin = max 0 (state.minutes - d - 1) in
+      solve problem
+        {
+          at = v;
+          closed = state.closed lxor offset;
+          released = state.released + (rmin * problem.graph.(v).flow);
+          minutes = rmin;
+        }
+        answers
   in
-  match state with
-  | { unopened = 0; _ } | { minutes = 0; _ } -> state.released
-  | _ ->
-      problem.openables |> List.mapi open_valve
-      |> List.fold_left max state.released
+  if state.minutes <= 0 || state.closed = 0 then state.released
+  else
+    problem.openables |> List.mapi open_valve
+    |> List.fold_left max state.released
+
+let find_part2 answers closed =
+  Hashtbl.fold
+    (fun k v acc ->
+      match Hashtbl.find_opt answers (closed lxor k) with
+      | Some v2 -> max (v + v2) acc
+      | None -> acc)
+    answers 0
 
 let () =
   let problem = Util.list_of_input () |> problem_of_input in
-  let initial_state =
-    {
-      at = Util.index_of (fun v -> v.id = "AA") (Array.to_list problem.graph);
-      unopened = lnot (-1 lsl List.length problem.openables);
-      released = 0;
-      minutes = 30;
-    }
+  let start =
+    Util.index_of (fun v -> v.id = "AA") (Array.to_list problem.graph)
   in
-  solve problem initial_state |> Printf.printf "Part 1: %d\n"
+  let closed_set = lnot (-1 lsl List.length problem.openables) in
+  let answers = Hashtbl.create 20000 in
+
+  solve problem
+    { at = start; closed = closed_set; released = 0; minutes = 30 }
+    answers
+  |> Printf.printf "Part 1: %d\n";
+
+  Hashtbl.clear answers;
+  solve problem
+    { at = start; closed = closed_set; released = 0; minutes = 26 }
+    answers
+  |> ignore;
+  find_part2 answers closed_set |> Printf.printf "Part 2: %d\n"
